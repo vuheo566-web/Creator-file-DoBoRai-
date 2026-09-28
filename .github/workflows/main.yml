@@ -23,9 +23,137 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - run: gradle assembleDebug
+      - name: Create project
+        run: |
+          mkdir -p app/src/main/java/com/fileaimcreator/app
+          mkdir -p app/src/main/res/values
 
-      - uses: actions/upload-artifact@v4
+          cat > settings.gradle.kts <<'EOF'
+          pluginManagement {
+            repositories {
+              google()
+              mavenCentral()
+              gradlePluginPortal()
+            }
+          }
+          dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+              google()
+              mavenCentral()
+            }
+          }
+          rootProject.name="FileAimCreator"
+          include(":app")
+          EOF
+
+          cat > build.gradle.kts <<'EOF'
+          plugins {
+            id("com.android.application") version "8.6.1" apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          EOF
+
+          cat > app/build.gradle.kts <<'EOF'
+          plugins {
+            id("com.android.application")
+          }
+
+          android {
+            namespace="com.fileaimcreator.app"
+            compileSdk=35
+
+            defaultConfig {
+              applicationId="com.fileaimcreator.app"
+              minSdk=26
+              targetSdk=35
+              versionCode=1
+              versionName="1.0"
+            }
+
+            compileOptions {
+              sourceCompatibility=JavaVersion.VERSION_17
+              targetCompatibility=JavaVersion.VERSION_17
+            }
+          }
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <resources>
+            <style name="AppTheme"
+              parent="android:style/Theme.Material.NoActionBar">
+              <item name="android:fontFamily">sans</item>
+              <item name="android:statusBarColor">#070B12</item>
+              <item name="android:navigationBarColor">#070B12</item>
+              <item name="android:colorAccent">#00E5FF</item>
+            </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application
+              android:theme="@style/AppTheme"
+              android:label="File Aim Creator">
+              <activity
+                android:name=".MainActivity"
+                android:screenOrientation="portrait"
+                android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/fileaimcreator/app/MainActivity.java <<'EOF'
+          package com.fileaimcreator.app;
+
+          import android.app.*;
+          import android.os.*;
+          import android.graphics.Color;
+          import android.view.*;
+          import android.widget.*;
+
+          public class MainActivity extends Activity {
+            public void onCreate(Bundle b) {
+              super.onCreate(b);
+
+              LinearLayout l=new LinearLayout(this);
+              l.setOrientation(LinearLayout.VERTICAL);
+              l.setPadding(30,80,30,30);
+              l.setBackgroundColor(Color.rgb(7,11,18));
+
+              TextView t=new TextView(this);
+              t.setText("FILE AIM CREATOR");
+              t.setTextSize(30);
+              t.setTextColor(Color.CYAN);
+              t.setGravity(Gravity.CENTER);
+
+              TextView s=new TextView(this);
+              s.setText("\nCreator APK\n\nPREMIUM-938448");
+              s.setTextSize(18);
+              s.setTextColor(Color.WHITE);
+              s.setGravity(Gravity.CENTER);
+
+              l.addView(t);
+              l.addView(s);
+              setContentView(l);
+            }
+          }
+          EOF
+
+      - name: Build
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: FileAimCreator-APK
           path: app/build/outputs/apk/debug/app-debug.apk
